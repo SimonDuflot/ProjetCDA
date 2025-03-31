@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: ${COMPOSE_PROJECT_NAME:-my_project}_db # Use project name prefix
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-devdb} # Default DB name for dev
+      POSTGRES_USER: ${POSTGRES_USER:-devuser} # Default user for dev
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-devpass} # Default pass for dev
+    volumes:
+      - postgres_data:/var/lib/postgresql/data # Persist data using named volume
+    networks:
+      - app-network
+    # ports: # Only expose ports if needed for direct external access/debugging
+      # - "5432:5432"
+    healthcheck: # Basic check to see if Postgres is ready to accept commands
+        test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-devuser} -d ${POSTGRES_DB:-devdb}"]
+        interval: 10s
+        timeout: 5s
+        retries: 5
+
+  backend:
+    container_name: ${COMPOSE_PROJECT_NAME:-my_project}_backend
+    build:
+      context: ./my_project_back/backend # Path to backend project containing Dockerfile
+      dockerfile: Dockerfile
+    depends_on:
+      db: # Wait for db service to start and ideally be healthy
+        condition: service_healthy
+    environment:
+      # Activate the 'prod' profile (uses Postgres via env vars below)
+      # OR use 'dev' profile if you want docker-compose up to use dev settings
+      SPRING_PROFILES_ACTIVE: prod
+      # --- These match the prod profile properties ---
+      DB_HOST: db # Service name of the database container
+      DB_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-devdb} # Match db service env var
+      POSTGRES_USER: ${POSTGRES_USER:-devuser} # Match db service env var
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-devpass} # Match db service env var
+      # --- Other backend env vars if needed ---
+    ports:
+      - "8080:8080" # Map host port 8080 to container port 8080
+    networks:
+      - app-network
+
+  frontend:
+    container_name: ${COMPOSE_PROJECT_NAME:-my_project}_frontend
+    build:
+      context: ./my_project_front # Path to frontend project containing Dockerfile
+      dockerfile: Dockerfile
+    ports:
+      - "80:80" # Map host port 80 to container port 80
+    networks:
+      - app-network
+    # depends_on: # Frontend doesn't strictly depend on backend start for static files
+      # - backend
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  postgres_data: # Define the named volume used by the db service
+    driver: local

@@ -1,0 +1,9 @@
+# Build output folders
+target/
+
+# IDE folders
+.idea/
+*.iml
+
+# Log files
+*.log
