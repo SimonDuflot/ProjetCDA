@@ -144,7 +144,7 @@ public class LineDetector extends PDFStreamEngine {
         PDGraphicsState state = getGraphicsState();
         Matrix ctm = state.getCurrentTransformationMatrix();
         Vector sourceVector = new Vector(x, y);
-        return ctm.transformPoint(sourceVector);
+        return ctm.transform(sourceVector);
     }
 
     /**
