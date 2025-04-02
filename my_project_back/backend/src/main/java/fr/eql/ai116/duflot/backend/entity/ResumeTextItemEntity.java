@@ -10,6 +10,7 @@ public class ResumeTextItemEntity {
     private String fontName;
     private float fontSize;
     private boolean bold;
+    private boolean hasEOL;
 
     public ResumeTextItemEntity(String text, float x, float y, float width, float height, String fontName, float fontSize, boolean bold) {
         this.text = text;
@@ -20,6 +21,7 @@ public class ResumeTextItemEntity {
         this.fontName = fontName;
         this.fontSize = fontSize;
         this.bold = bold;
+        this.hasEOL = false;
     }
 
     public String getText() { return text; }
@@ -30,6 +32,13 @@ public class ResumeTextItemEntity {
     public String getFontName() { return fontName; }
     public float getFontSize() { return fontSize; }
     public boolean isBold() { return bold; }
+    public boolean isHasEOL() {
+        return hasEOL;
+    }
+
+    public void setHasEOL(boolean hasEOL) {
+        this.hasEOL = hasEOL;
+    }
 
     @Override
     public String toString() {

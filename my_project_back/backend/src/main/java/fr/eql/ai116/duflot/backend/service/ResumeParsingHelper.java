@@ -1,10 +1,12 @@
 package fr.eql.ai116.duflot.backend.service;
 
+import fr.eql.ai116.duflot.backend.entity.dto.ParsingTraceDTO;
 import fr.eql.ai116.duflot.backend.entity.ProfileEntity;
 import fr.eql.ai116.duflot.backend.entity.ResumeLineEntity;
 import fr.eql.ai116.duflot.backend.entity.ResumeSectionEntity;
 import fr.eql.ai116.duflot.backend.entity.ResumeTextItemEntity;
 import fr.eql.ai116.duflot.backend.entity.SectionType;
+import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -16,6 +18,7 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+@Service
 public class ResumeParsingHelper {
     // Expanded keyword sets with more variations in both languages
     private static final Map<SectionType, Set<String>> SECTION_KEYWORDS = new HashMap<>();
@@ -105,17 +108,27 @@ public class ResumeParsingHelper {
             Pattern.CASE_INSENSITIVE
     );
 
-    // General Website/Portfolio Pattern (tries to exclude LinkedIn/GitHub)
     private static final Pattern WEBSITE_PATTERN = Pattern.compile(
-            "\\b(?:https?://|www\\.)[\\w-]+(?:\\.[\\w-]+)+\\/?(?:/[^\\s]*)?(?<!linkedin\\.com)(?<!github\\.com)",
+            // Starts with www. (word boundary before it)
+            "\\b(?:www.)?" +
+                    // Negative lookahead: Ensure the domain part right after www. isn't linkedin.com or github.com
+                    "(?!(?:linkedin|github)\\.com\\b)" +
+                    // Match the main domain name part (letters, numbers, hyphen)
+                    "[\\w-]+" +
+                    // Match the dot before the TLD
+                    "\\." +
+                    // Match the TLD: 2 or more letters (e.g., com, org, io, dev, fr, uk, ai, etc.)
+                    "[a-z]{2,}" +
+                    // Word boundary to ensure the TLD ends cleanly
+                    "\\b" +
+                    // Optionally match a path afterwards (slash followed by non-space characters)
+                    "(?:/[^\\s]*)?",
             Pattern.CASE_INSENSITIVE
     );
-
     private static final float MIN_GAP_FACTOR = 1.5f;
     private static final float Y_TOLERANCE = 2.0f;
     private static final float X_MERGE_TOLERANCE = 1.0f;
 
-    // Method to group items into lines remains the same
     public List<ResumeLineEntity> groupItemsIntoLines(List<ResumeTextItemEntity> items) {
         if (items == null || items.isEmpty()) {
             return new ArrayList<>();
@@ -158,7 +171,7 @@ public class ResumeParsingHelper {
         return lines;
     }
 
-    public List<ResumeSectionEntity> groupLinesIntoSections(List<ResumeLineEntity> lines) {
+    public List<ResumeSectionEntity> groupLinesIntoSections(List<ResumeLineEntity> lines, ParsingTraceDTO traceData) {
         if (lines == null || lines.isEmpty()) {
             return new ArrayList<>();
         }

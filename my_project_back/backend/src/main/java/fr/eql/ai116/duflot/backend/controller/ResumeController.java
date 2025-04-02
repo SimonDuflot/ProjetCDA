@@ -1,6 +1,7 @@
 package fr.eql.ai116.duflot.backend.controller;
 
-import fr.eql.ai116.duflot.backend.entity.PositionalTextStripper;
+import fr.eql.ai116.duflot.backend.service.ResumeParsingService;
+import fr.eql.ai116.duflot.backend.service.impl.PositionalTextStripperImpl;
 import fr.eql.ai116.duflot.backend.entity.ProfileEntity;
 import fr.eql.ai116.duflot.backend.entity.ResumeLineEntity;
 import fr.eql.ai116.duflot.backend.entity.ResumeSectionEntity;
@@ -11,7 +12,9 @@ import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.io.IOUtils;
 import org.apache.pdfbox.io.RandomAccessRead;
 import org.apache.pdfbox.io.RandomAccessReadBuffer;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -24,17 +27,19 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api")
+@RequestMapping("/api/resume")
 @CrossOrigin(origins = "http://127.0.0.1:5500")
-public class ResumeUploadController {
+public class ResumeController {
 
-    @PostMapping("/uploadResumeBlob")
-    public ResponseEntity<Map<String, Object>> uploadResumeBlob(@RequestParam("file")MultipartFile file) {
+    @Autowired
+    ResumeParsingService resumeParsingService;
+
+    @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<Map<String, Object>> uploadResume(@RequestParam("file")MultipartFile file) {
 
         List<ResumeTextItemEntity> extractedItems;
 
@@ -46,7 +51,7 @@ public class ResumeUploadController {
             PDDocument document = Loader.loadPDF(randomAccessRead);
 
             // Extract text content
-            PositionalTextStripper textStripper = new PositionalTextStripper();
+            PositionalTextStripperImpl textStripper = new PositionalTextStripperImpl();
             textStripper.getText(document);
 
             extractedItems = textStripper.getTextItems();
@@ -76,7 +81,7 @@ public class ResumeUploadController {
             for (ResumeSectionEntity section : sections) {
                 if (section.getType() == SectionType.PROFILE) {
                     profileData = parsingHelper.extractProfileData(section);
-                    break; // Stop once found
+                    break;
                 }
             }
 
@@ -86,10 +91,6 @@ public class ResumeUploadController {
             } else {
                 System.out.println("\nProfile section not found or no data extracted.");
             }
-
-            // TODO: Extract data for other sections (Education, Experience, etc.)
-            // TODO: Assemble into a final ResumeEntity
-            // TODO: Save ResumeEntity to database
 
             document.close();
             randomAccessRead.close();
